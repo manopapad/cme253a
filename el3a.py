@@ -17,7 +17,7 @@ XMF_BODY = """
         <Topology TopologyType="3DCoRectMesh" Dimensions="{px} {py} {pz}"></Topology>
         <!-- Geometry: Node positions derived implicitly, based on grid origin and cell size -->
         <Geometry GeometryType="Origin_DxDyDz">
-          <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">0.0 0.0 0.0</DataItem>
+          <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">{ox} {oy} {oz}</DataItem>
           <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">{dx} {dy} {dz}</DataItem>
         </Geometry>
         <Attribute Name="pressure" AttributeType="Scalar" Center="Cell">
@@ -59,7 +59,7 @@ z = np.linspace((-Lz+dz)/2, (Lz-dz)/2, nz)
 x, y, z = np.meshgrid(x, y, z, indexing='ij')
 
 # quantities stored on:
-# centers: P, Txx, Tyy, Tzz
+# centers: x, y, z, P, Txx, Tyy, Tzz
 # x-faces (faces perpendicular to x axis): Vx
 # x-edges (edges parallel to x axis): Tyz
 
@@ -84,8 +84,19 @@ Tyz = np.zeros((nx,  ny+1,nz+1))
 
 with open('out.xmf', 'w') as xmf_out:
     xmf_out.write(XMF_HEADER)
+    t = 0
+    while True:
+        hdf_out = h5py.File('%d.hdf' % t, 'w')
+        hdf_out['pressure'] = P
+        hdf_out.close()
+        xmf_out.write(XMF_BODY.format(t = t,
+                                      nx = nx,    ny = ny,    nz = nz,
+                                      px = nx+1,  py = ny+1,  pz = nz+1,
+                                      ox = -Lx/2, oy = -Ly/2, oz = -Lz/2,
+                                      dx = dx,    dy = dy,    dz = dz))
+        if t >= nt:
+            break
 
-    for t in range(0,nt):
         Txy[1:-1,1:-1,:] += dt*G*( Dy(Vx[1:-1,:,:]) + Dx(Vy[:,1:-1,:]) )
         Txz[1:-1,:,1:-1] += dt*G*( Dz(Vx[1:-1,:,:]) + Dx(Vz[:,:,1:-1]) )
         Tyz[:,1:-1,1:-1] += dt*G*( Dz(Vy[:,1:-1,:]) + Dy(Vz[:,:,1:-1]) )
@@ -97,11 +108,5 @@ with open('out.xmf', 'w') as xmf_out:
         Vz[:,:,1:-1] += dt/rho*( - Dz(P) + Dz(Tzz) + Dx(Txz[:,:,1:-1]) + Dy(Tyz[:,:,1:-1]) )
         P -= dt*k*( Dx(Vx) + Dy(Vy) + Dz(Vz) )
 
-        hdf_out = h5py.File('%d.hdf' % t, 'w')
-        hdf_out['pressure'] = P
-        hdf_out.close()
-        xmf_out.write(XMF_BODY.format(t = t,
-                                      nx = nx,   ny = ny,   nz = nz,
-                                      px = nx+1, py = ny+1, pz = nz+1,
-                                      dx = dx,   dy = dy,   dz = dz))
+        t += 1
     xmf_out.write(XMF_FOOTER)
