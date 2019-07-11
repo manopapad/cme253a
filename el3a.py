@@ -45,7 +45,7 @@ dx = Lx/nx
 dy = Ly/ny
 dz = Lz/nz
 nt = 200
-dt = min(dx,dy,dz)/math.sqrt(k/rho)/3.0
+dt = min(dx,dy,dz)/math.sqrt(k/rho)/2.75
 def Dx(a):
     return np.diff(a, axis=0)/dx
 def Dy(a):
