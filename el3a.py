@@ -34,7 +34,7 @@ XMF_FOOTER = """
 Lx = 15.0
 Ly = 10.0
 Lz = 5.0
-k = 1.0
+kappa = 1.0
 rho = 1.0
 G = 1.0
 
@@ -45,7 +45,7 @@ dx = Lx/nx
 dy = Ly/ny
 dz = Lz/nz
 nt = 200
-dt = min(dx,dy,dz)/math.sqrt(k/rho)/2.75
+dt = min(dx,dy,dz)/math.sqrt(kappa/rho)/2.75
 def Dx(a):
     return np.diff(a, axis=0)/dx
 def Dy(a):
@@ -106,7 +106,7 @@ with open('out.xmf', 'w') as xmf_out:
         Vx[1:-1,:,:] += dt/rho*( - Dx(P) + Dx(Txx) + Dy(Txy[1:-1,:,:]) + Dz(Txz[1:-1,:,:]) )
         Vy[:,1:-1,:] += dt/rho*( - Dy(P) + Dy(Tyy) + Dx(Txy[:,1:-1,:]) + Dz(Tyz[:,1:-1,:]) )
         Vz[:,:,1:-1] += dt/rho*( - Dz(P) + Dz(Tzz) + Dx(Txz[:,:,1:-1]) + Dy(Tyz[:,:,1:-1]) )
-        P -= dt*k*( Dx(Vx) + Dy(Vy) + Dz(Vz) )
+        P -= dt*kappa*( Dx(Vx) + Dy(Vy) + Dz(Vz) )
 
         t += 1
     xmf_out.write(XMF_FOOTER)
