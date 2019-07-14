@@ -5,33 +5,6 @@ import numpy as np
 import math
 import h5py
 
-XMF_HEADER = """<?xml version="1.0" ?>
-<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
-<Xdmf xmlns:xi="http://www.w3.org/2003/XInclude" Version="3.0">
-  <Domain>
-    <Grid GridType="Collection" CollectionType="Temporal">
-"""
-XMF_BODY = """
-      <Grid GridType="Uniform">
-        <Time Value="{t}"/>
-        <!-- Topology: orthonormal 3D grid -->
-        <Topology TopologyType="3DCoRectMesh" Dimensions="{px} {py} {pz}"></Topology>
-        <!-- Geometry: Node positions derived implicitly, based on grid origin and cell size -->
-        <Geometry GeometryType="Origin_DxDyDz">
-          <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">{ox} {oy} {oz}</DataItem>
-          <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">{dx} {dy} {dz}</DataItem>
-        </Geometry>
-        <Attribute Name="pressure" AttributeType="Scalar" Center="Cell">
-          <DataItem Dimensions="{nx} {ny} {nz}" NumberType="Float" Precision="8" Format="HDF">{t}.hdf:/pressure</DataItem>
-        </Attribute>
-      </Grid>
-"""
-XMF_FOOTER = """
-    </Grid>
-  </Domain>
-</Xdmf>
-"""
-
 Lx = 15.0
 Ly = 10.0
 Lz = 5.0
@@ -103,41 +76,31 @@ for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
 for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
     P[i,j,k] = math.exp(-(x[i,j,k]**2+y[i,j,k]**2+z[i,j,k]**2))
 
-with open('out.xmf', 'w') as xmf_out:
-    xmf_out.write(XMF_HEADER)
-    t = 0
-    while True:
-        hdf_out = h5py.File('%d.hdf' % t, 'w')
-        hdf_out['pressure'] = P
-        hdf_out.close()
-        xmf_out.write(XMF_BODY.format(t = t,
-                                      nx = nx,    ny = ny,    nz = nz,
-                                      px = nx+1,  py = ny+1,  pz = nz+1,
-                                      ox = -Lx/2, oy = -Ly/2, oz = -Lz/2,
-                                      dx = dx,    dy = dy,    dz = dz))
-        if t >= nt:
-            break
+t = -1
+while True:
+    hdf_out = h5py.File('%d.hdf' % t, 'w')
+    hdf_out['pressure'] = P
+    hdf_out.close()
+    if t >= nt:
+        break
 
-        for (i,j,k) in bounds(1, nx, 1, ny, 0, nz):
-            Txy[i,j,k] += dt*G*( Dy(Vx,i,j-1,k) + Dx(Vy,i-1,j,k) )
-        for (i,j,k) in bounds(1, nx, 0, ny, 1, nz):
-            Txz[i,j,k] += dt*G*( Dz(Vx,i,j,k-1) + Dx(Vz,i-1,j,k) )
-        for (i,j,k) in bounds(0, nx, 1, ny, 1, nz):
-            Tyz[i,j,k] += dt*G*( Dz(Vy,i,j,k-1) + Dy(Vz,i,j-1,k) )
-        for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-            Txx[i,j,k] += dt*2.0*G*( + 2.0/3.0*Dx(Vx,i,j,k) - 1.0/3.0*Dy(Vy,i,j,k) - 1.0/3.0*Dz(Vz,i,j,k) )
-        for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-            Tyy[i,j,k] += dt*2.0*G*( - 1.0/3.0*Dx(Vx,i,j,k) + 2.0/3.0*Dy(Vy,i,j,k) - 1.0/3.0*Dz(Vz,i,j,k) )
-        for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-            Tzz[i,j,k] += dt*2.0*G*( - 1.0/3.0*Dx(Vx,i,j,k) - 1.0/3.0*Dy(Vy,i,j,k) + 2.0/3.0*Dz(Vz,i,j,k) )
-        for (i,j,k) in bounds(1, nx, 0, ny, 0, nz):
-            Vx[i,j,k] += dt/rho*( - Dx(P,i-1,j,k) + Dx(Txx,i-1,j,k) + Dy(Txy,i,j,k) + Dz(Txz,i,j,k) )
-        for (i,j,k) in bounds(0, nx, 1, ny, 0, nz):
-            Vy[i,j,k] += dt/rho*( - Dy(P,i,j-1,k) + Dy(Tyy,i,j-1,k) + Dx(Txy,i,j,k) + Dz(Tyz,i,j,k) )
-        for (i,j,k) in bounds(0, nx, 0, ny, 1, nz):
-            Vz[i,j,k] += dt/rho*( - Dz(P,i,j,k-1) + Dz(Tzz,i,j,k-1) + Dx(Txz,i,j,k) + Dy(Tyz,i,j,k) )
-        for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-            P[i,j,k] -= dt*kappa*( Dx(Vx,i,j,k) + Dy(Vy,i,j,k) + Dz(Vz,i,j,k) )
-
-        t += 1
-    xmf_out.write(XMF_FOOTER)
+    for (i,j,k) in bounds(1, nx, 1, ny, 0, nz):
+        Txy[i,j,k] += dt*G*( Dy(Vx,i,j-1,k) + Dx(Vy,i-1,j,k) )
+    for (i,j,k) in bounds(1, nx, 0, ny, 1, nz):
+        Txz[i,j,k] += dt*G*( Dz(Vx,i,j,k-1) + Dx(Vz,i-1,j,k) )
+    for (i,j,k) in bounds(0, nx, 1, ny, 1, nz):
+        Tyz[i,j,k] += dt*G*( Dz(Vy,i,j,k-1) + Dy(Vz,i,j-1,k) )
+    for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
+        Txx[i,j,k] += dt*2.0*G*( + 2.0/3.0*Dx(Vx,i,j,k) - 1.0/3.0*Dy(Vy,i,j,k) - 1.0/3.0*Dz(Vz,i,j,k) )
+    for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
+        Tyy[i,j,k] += dt*2.0*G*( - 1.0/3.0*Dx(Vx,i,j,k) + 2.0/3.0*Dy(Vy,i,j,k) - 1.0/3.0*Dz(Vz,i,j,k) )
+    for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
+        Tzz[i,j,k] += dt*2.0*G*( - 1.0/3.0*Dx(Vx,i,j,k) - 1.0/3.0*Dy(Vy,i,j,k) + 2.0/3.0*Dz(Vz,i,j,k) )
+    for (i,j,k) in bounds(1, nx, 0, ny, 0, nz):
+        Vx[i,j,k] += dt/rho*( - Dx(P,i-1,j,k) + Dx(Txx,i-1,j,k) + Dy(Txy,i,j,k) + Dz(Txz,i,j,k) )
+    for (i,j,k) in bounds(0, nx, 1, ny, 0, nz):
+        Vy[i,j,k] += dt/rho*( - Dy(P,i,j-1,k) + Dy(Tyy,i,j-1,k) + Dx(Txy,i,j,k) + Dz(Tyz,i,j,k) )
+    for (i,j,k) in bounds(0, nx, 0, ny, 1, nz):
+        Vz[i,j,k] += dt/rho*( - Dz(P,i,j,k-1) + Dz(Tzz,i,j,k-1) + Dx(Txz,i,j,k) + Dy(Tyz,i,j,k) )
+    for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
+        P[i,j,k] -= dt*kappa*( Dx(Vx,i,j,k) + Dy(Vy,i,j,k) + Dz(Vz,i,j,k) )
