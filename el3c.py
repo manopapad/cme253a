@@ -78,6 +78,7 @@ for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
 
 t = -1
 while True:
+    t += 1
     hdf_out = h5py.File('%d.hdf' % t, 'w')
     hdf_out['pressure'] = P
     hdf_out.close()
