@@ -87,19 +87,7 @@ with open('out.xmf', 'w') as xmf_out:
     t = 0
     while True:
         hdf_out = h5py.File('%d.hdf' % t, 'w')
-        hdf_out['x'] = x
-        hdf_out['y'] = y
-        hdf_out['z'] = z
-        hdf_out['P'] = P
-        hdf_out['Vx'] = Vx
-        hdf_out['Vy'] = Vy
-        hdf_out['Vz'] = Vz
-        hdf_out['Txx'] = Txx
-        hdf_out['Tyy'] = Tyy
-        hdf_out['Tzz'] = Tzz
-        hdf_out['Txy'] = Txy
-        hdf_out['Txz'] = Txz
-        hdf_out['Tyz'] = Tyz
+        hdf_out['pressure'] = P
         hdf_out.close()
         xmf_out.write(XMF_BODY.format(t = t,
                                       nx = nx,    ny = ny,    nz = nz,
