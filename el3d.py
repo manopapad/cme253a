@@ -24,15 +24,10 @@ dt = min(dx,dy,dz)/math.sqrt(kappa/rho)/2.75
 OVERLENGTH_X = 1
 OVERLENGTH_Y = 1
 OVERLENGTH_Z = 1
-def bounds(xmin, xlim, ymin, ylim, zmin, zlim):
-    def p((i, j, k)):
-        return (xmin <= i and i < xlim and
-                ymin <= j and j < ylim and
-                zmin <= k and k < zlim)
-    prod = itertools.product(range(0, nx+OVERLENGTH_X),
+def full_bounds():
+    return itertools.product(range(0, nx+OVERLENGTH_X),
                              range(0, ny+OVERLENGTH_Y),
                              range(0, nz+OVERLENGTH_Z))
-    return itertools.ifilter(p, prod)
 
 # quantities stored on:
 # centers: x, y, z, P, Txx, Tyy, Tzz
@@ -61,14 +56,18 @@ Txy = np.zeros((nx+1,ny+1,nz  ))
 Txz = np.zeros((nx+1,ny,  nz+1))
 Tyz = np.zeros((nx,  ny+1,nz+1))
 
-for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-    x[i,j,k] = (-Lx+dx)/2 + i*dx
-for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-    y[i,j,k] = (-Ly+dy)/2 + j*dy
-for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-    z[i,j,k] = (-Lz+dz)/2 + k*dz
-for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-    P[i,j,k] = math.exp(-(x[i,j,k]**2+y[i,j,k]**2+z[i,j,k]**2))
+for (i,j,k) in full_bounds():
+    if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+        x[i,j,k] = (-Lx+dx)/2 + i*dx
+for (i,j,k) in full_bounds():
+    if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+        y[i,j,k] = (-Ly+dy)/2 + j*dy
+for (i,j,k) in full_bounds():
+    if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+        z[i,j,k] = (-Lz+dz)/2 + k*dz
+for (i,j,k) in full_bounds():
+    if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+        P[i,j,k] = math.exp(-(x[i,j,k]**2+y[i,j,k]**2+z[i,j,k]**2))
 
 t = -1
 while True:
@@ -79,23 +78,33 @@ while True:
     if t >= nt:
         break
 
-    for (i,j,k) in bounds(1, nx, 1, ny, 0, nz):
-        Txy[i,j,k] += dt*G*( (Vx[i,j,k]-Vx[i,j-1,k])/dy + (Vy[i,j,k]-Vy[i-1,j,k])/dx )
-    for (i,j,k) in bounds(1, nx, 0, ny, 1, nz):
-        Txz[i,j,k] += dt*G*( (Vx[i,j,k]-Vx[i,j,k-1])/dz + (Vz[i,j,k]-Vz[i-1,j,k])/dx )
-    for (i,j,k) in bounds(0, nx, 1, ny, 1, nz):
-        Tyz[i,j,k] += dt*G*( (Vy[i,j,k]-Vy[i,j,k-1])/dz + (Vz[i,j,k]-Vz[i,j-1,k])/dy )
-    for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-        Txx[i,j,k] += dt*2.0*G*( + 2.0/3.0*(Vx[i+1,j,k]-Vx[i,j,k])/dx - 1.0/3.0*(Vy[i,j+1,k]-Vy[i,j,k])/dy - 1.0/3.0*(Vz[i,j,k+1]-Vz[i,j,k])/dz )
-    for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-        Tyy[i,j,k] += dt*2.0*G*( - 1.0/3.0*(Vx[i+1,j,k]-Vx[i,j,k])/dx + 2.0/3.0*(Vy[i,j+1,k]-Vy[i,j,k])/dy - 1.0/3.0*(Vz[i,j,k+1]-Vz[i,j,k])/dz )
-    for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-        Tzz[i,j,k] += dt*2.0*G*( - 1.0/3.0*(Vx[i+1,j,k]-Vx[i,j,k])/dx - 1.0/3.0*(Vy[i,j+1,k]-Vy[i,j,k])/dy + 2.0/3.0*(Vz[i,j,k+1]-Vz[i,j,k])/dz )
-    for (i,j,k) in bounds(1, nx, 0, ny, 0, nz):
-        Vx[i,j,k] += dt/rho*( - (P[i,j,k]-P[i-1,j,k])/dx + (Txx[i,j,k]-Txx[i-1,j,k])/dx + (Txy[i,j+1,k]-Txy[i,j,k])/dy + (Txz[i,j,k+1]-Txz[i,j,k])/dz )
-    for (i,j,k) in bounds(0, nx, 1, ny, 0, nz):
-        Vy[i,j,k] += dt/rho*( - (P[i,j,k]-P[i,j-1,k])/dy + (Tyy[i,j,k]-Tyy[i,j-1,k])/dy + (Txy[i+1,j,k]-Txy[i,j,k])/dx + (Tyz[i,j,k+1]-Tyz[i,j,k])/dz )
-    for (i,j,k) in bounds(0, nx, 0, ny, 1, nz):
-        Vz[i,j,k] += dt/rho*( - (P[i,j,k]-P[i,j,k-1])/dz + (Tzz[i,j,k]-Tzz[i,j,k-1])/dz + (Txz[i+1,j,k]-Txz[i,j,k])/dx + (Tyz[i,j+1,k]-Tyz[i,j,k])/dy )
-    for (i,j,k) in bounds(0, nx, 0, ny, 0, nz):
-        P[i,j,k] -= dt*kappa*( (Vx[i+1,j,k]-Vx[i,j,k])/dx + (Vy[i,j+1,k]-Vy[i,j,k])/dy + (Vz[i,j,k+1]-Vz[i,j,k])/dz )
+    for (i,j,k) in full_bounds():
+        if 1 <= i and i < nx and 1 <= j and j < ny and 0 <= k and k < nz:
+            Txy[i,j,k] += dt*G*( (Vx[i,j,k]-Vx[i,j-1,k])/dy + (Vy[i,j,k]-Vy[i-1,j,k])/dx )
+    for (i,j,k) in full_bounds():
+        if 1 <= i and i < nx and 0 <= j and j < ny and 1 <= k and k < nz:
+            Txz[i,j,k] += dt*G*( (Vx[i,j,k]-Vx[i,j,k-1])/dz + (Vz[i,j,k]-Vz[i-1,j,k])/dx )
+    for (i,j,k) in full_bounds():
+        if 0 <= i and i < nx and 1 <= j and j < ny and 1 <= k and k < nz:
+            Tyz[i,j,k] += dt*G*( (Vy[i,j,k]-Vy[i,j,k-1])/dz + (Vz[i,j,k]-Vz[i,j-1,k])/dy )
+    for (i,j,k) in full_bounds():
+        if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+            Txx[i,j,k] += dt*2.0*G*( + 2.0/3.0*(Vx[i+1,j,k]-Vx[i,j,k])/dx - 1.0/3.0*(Vy[i,j+1,k]-Vy[i,j,k])/dy - 1.0/3.0*(Vz[i,j,k+1]-Vz[i,j,k])/dz )
+    for (i,j,k) in full_bounds():
+        if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+            Tyy[i,j,k] += dt*2.0*G*( - 1.0/3.0*(Vx[i+1,j,k]-Vx[i,j,k])/dx + 2.0/3.0*(Vy[i,j+1,k]-Vy[i,j,k])/dy - 1.0/3.0*(Vz[i,j,k+1]-Vz[i,j,k])/dz )
+    for (i,j,k) in full_bounds():
+        if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+            Tzz[i,j,k] += dt*2.0*G*( - 1.0/3.0*(Vx[i+1,j,k]-Vx[i,j,k])/dx - 1.0/3.0*(Vy[i,j+1,k]-Vy[i,j,k])/dy + 2.0/3.0*(Vz[i,j,k+1]-Vz[i,j,k])/dz )
+    for (i,j,k) in full_bounds():
+        if 1 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+            Vx[i,j,k] += dt/rho*( - (P[i,j,k]-P[i-1,j,k])/dx + (Txx[i,j,k]-Txx[i-1,j,k])/dx + (Txy[i,j+1,k]-Txy[i,j,k])/dy + (Txz[i,j,k+1]-Txz[i,j,k])/dz )
+    for (i,j,k) in full_bounds():
+        if 0 <= i and i < nx and 1 <= j and j < ny and 0 <= k and k < nz:
+            Vy[i,j,k] += dt/rho*( - (P[i,j,k]-P[i,j-1,k])/dy + (Tyy[i,j,k]-Tyy[i,j-1,k])/dy + (Txy[i+1,j,k]-Txy[i,j,k])/dx + (Tyz[i,j,k+1]-Tyz[i,j,k])/dz )
+    for (i,j,k) in full_bounds():
+        if 0 <= i and i < nx and 0 <= j and j < ny and 1 <= k and k < nz:
+            Vz[i,j,k] += dt/rho*( - (P[i,j,k]-P[i,j,k-1])/dz + (Tzz[i,j,k]-Tzz[i,j,k-1])/dz + (Txz[i+1,j,k]-Txz[i,j,k])/dx + (Tyz[i,j+1,k]-Tyz[i,j,k])/dy )
+    for (i,j,k) in full_bounds():
+        if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
+            P[i,j,k] -= dt*kappa*( (Vx[i+1,j,k]-Vx[i,j,k])/dx + (Vy[i,j+1,k]-Vy[i,j,k])/dy + (Vz[i,j,k+1]-Vz[i,j,k])/dz )
