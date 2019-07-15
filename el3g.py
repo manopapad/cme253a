@@ -57,18 +57,13 @@ Txz = np.zeros((nx+1,ny,  nz+1))
 Tyz = np.zeros((nx,  ny+1,nz+1))
 
 for (i,j,k) in full_bounds():
-    if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
-        x[i,j,k] = (-Lx+dx)/2 + i*dx
-for (i,j,k) in full_bounds():
-    if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
-        y[i,j,k] = (-Ly+dy)/2 + j*dy
-for (i,j,k) in full_bounds():
-    if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
-        z[i,j,k] = (-Lz+dz)/2 + k*dz
-for (i,j,k) in full_bounds():
-    if 0 <= i and i < nx and 0 <= j and j < ny and 0 <= k and k < nz:
-        P[i,j,k] = math.exp(-(x[i,j,k]**2+y[i,j,k]**2+z[i,j,k]**2))
-# stresses are already correct for the next iteration
+    if i >= nx or j >= ny or k >= nz:
+        continue
+    x[i,j,k] = (-Lx+dx)/2 + i*dx
+    y[i,j,k] = (-Ly+dy)/2 + j*dy
+    z[i,j,k] = (-Lz+dz)/2 + k*dz
+    P[i,j,k] = math.exp(-(x[i,j,k]**2+y[i,j,k]**2+z[i,j,k]**2))
+    # stresses are already correct for the next iteration
 
 t = -1
 while True:
