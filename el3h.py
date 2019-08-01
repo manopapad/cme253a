@@ -42,9 +42,6 @@ def full_bounds():
 # Txz = 0 on xmin,xmax,zmin,zmax
 # Tyz = 0 on ymin,ymax,zmin,zmax
 
-x   = np.zeros((nx,  ny,  nz  ))
-y   = np.zeros((nx,  ny,  nz  ))
-z   = np.zeros((nx,  ny,  nz  ))
 P   = np.zeros((nx,  ny,  nz  ))
 Vx  = np.zeros((nx+1,ny,  nz  ))
 Vy  = np.zeros((nx,  ny+1,nz  ))
@@ -59,10 +56,10 @@ Tyz = np.zeros((nx,  ny+1,nz+1))
 for (i,j,k) in full_bounds():
     if i >= nx or j >= ny or k >= nz:
         continue
-    x[i,j,k] = (-Lx+dx)/2 + i*dx
-    y[i,j,k] = (-Ly+dy)/2 + j*dy
-    z[i,j,k] = (-Lz+dz)/2 + k*dz
-    P[i,j,k] = math.exp(-(x[i,j,k]**2+y[i,j,k]**2+z[i,j,k]**2))
+    x = (-Lx+dx)/2 + i*dx
+    y = (-Ly+dy)/2 + j*dy
+    z = (-Lz+dz)/2 + k*dz
+    P[i,j,k] = math.exp(-(x**2+y**2+z**2))
     # stresses are already correct for the next iteration
 
 t = -1
