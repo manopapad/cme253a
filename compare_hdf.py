@@ -18,8 +18,8 @@ for fld in f1:
 for fld in f2:
     assert fld in f1 and f1[fld].shape == f2[fld].shape
 for fld in f1:
-    max_diff = np.max(np.absolute(f1[fld][:] - f2[fld][:]))
-    print '%s: max diff = %s' % (fld, max_diff)
+    max_diff = np.max(np.absolute(np.divide(f1[fld][:]-f2[fld][:],f1[fld][:])))
+    print '%s: max relative diff = %s' % (fld, max_diff)
 
 f2.close()
 f1.close()
