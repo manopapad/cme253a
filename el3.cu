@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <math.h>
 #include <sstream>
@@ -7,7 +8,7 @@
 
 #define USE_DOUBLE
 #define DO_CUDA_SYNC
-#define DO_HDF_OUT
+#define DO_OUTPUT
 
 #ifdef USE_DOUBLE
 #  define DAT double
@@ -51,6 +52,10 @@ constexpr DAT dy = Ly/ny;
 constexpr DAT dz = Lz/nz;
 constexpr int nt = 5;
 
+constexpr int PROBE_X = 75;
+constexpr int PROBE_Y = 50;
+constexpr int PROBE_Z = 25;
+
 constexpr int OVERLENGTH_X = 1;
 constexpr int OVERLENGTH_Y = 1;
 constexpr int OVERLENGTH_Z = 1;
@@ -67,7 +72,8 @@ public:
     ptr_.ptr = NULL;
   }
 public:
-  void write(const char* fname, const char* dname) {
+  void write(const char* hdf_fname, const char* probe_fname, const char* field) {
+    // copy data to host
     size_t ilim = extent_.depth;
     size_t jlim = extent_.height;
     size_t klim = extent_.width / sizeof(DAT);
@@ -78,15 +84,20 @@ public:
     params.extent = extent_;
     params.kind = cudaMemcpyDeviceToHost;
     CUDA_DO(cudaMemcpy3D(&params));
+    // HDF output
     hsize_t dims[3] = {ilim, jlim, klim};
-    hid_t file = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t hdf_file = H5Fcreate(hdf_fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     hid_t dataspace = H5Screate_simple(3, dims, NULL);
-    hid_t dataset = H5Dcreate(file, dname, H5_DAT, dataspace,
+    hid_t dataset = H5Dcreate(hdf_file, field, H5_DAT, dataspace,
                               H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(dataset, H5_DAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
     H5Dclose(dataset);
     H5Sclose(dataspace);
-    H5Fclose(file);
+    H5Fclose(hdf_file);
+    // probe output
+    std::ofstream probe_file(probe_fname, std::ofstream::app);
+    probe_file << data[PROBE_X*jlim*klim + PROBE_Y*klim + PROBE_Z] << std::endl;
+    // cleanup
     free(data);
   }
 public:
@@ -204,10 +215,10 @@ int main() {
   int t = -1;
   while (true) {
     t += 1;
-#   ifdef DO_HDF_OUT
-      std::stringstream fname;
-      fname << t << ".hdf";
-      P.write(fname.str().c_str(), "pressure");
+#   ifdef DO_OUTPUT
+      std::stringstream hdf_fname;
+      hdf_fname << t << ".hdf";
+      P.write(hdf_fname.str().c_str(), "pressure.dat", "pressure");
 #   endif
     if (t >= nt) {
       break;
