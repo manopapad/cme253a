@@ -2,5 +2,5 @@
 *.xmf
 *.pyc
 *.dat
-*.out
+*.exec
 *~
