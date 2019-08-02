@@ -11,26 +11,36 @@
 #define DO_OUTPUT
 
 #ifdef USE_DOUBLE
-#  define DAT double
-#  define H5_DAT H5T_IEEE_F64LE
+# define DAT double
+# define H5_DAT H5T_IEEE_F64LE
 #else
-#  define DAT float
-#  define H5_DAT H5T_IEEE_F32LE
+# define DAT float
+# define H5_DAT H5T_IEEE_F32LE
 #endif
 
-#define CUDA_DO(call) do {                                              \
-    cudaError_t code = (call);                                          \
-    if (code != cudaSuccess) {                                          \
-      std::cerr << "ERROR: " << __FILE__ << ":" << __LINE__ << " "      \
-                << cudaGetErrorString(code) << std::endl;               \
-      exit(code);                                                       \
-    }                                                                   \
-  } while(0)
+#define CUDA_ERROR(call) do {                                         \
+  cudaError_t code1 = (call);                                         \
+  if (code1 != cudaSuccess) {                                         \
+    std::cerr << "ERROR: " << __FILE__ << ":" << __LINE__ << " "      \
+              << cudaGetErrorString(code1) << std::endl;              \
+    exit(code1);                                                      \
+  }                                                                   \
+} while(0)
 #ifdef DO_CUDA_SYNC
-#  define CUDA_CHECK() CUDA_DO(cudaDeviceSynchronize())
+# define CUDA_DO(call) do {                     \
+    cudaError_t code2 = (call);                 \
+    if (code2 == cudaSuccess) {                 \
+      code2 = cudaDeviceSynchronize();          \
+    }                                           \
+    CUDA_ERROR(code2);                          \
+  } while(0)
 #else
-#  define CUDA_CHECK() do {} while(0)
+# define CUDA_DO(call) do {                     \
+    cudaError_t code3 = (call);                 \
+    CUDA_ERROR(code3);                          \
+  } while(0)
 #endif
+#define CUDA_CHECK() CUDA_DO(cudaSuccess)
 
 constexpr int GPU_ID = 0;
 constexpr int BLOCK_X = 8;
@@ -237,4 +247,6 @@ int main() {
   Vy.dealloc();
   Vx.dealloc();
   P.dealloc();
+  // Sanity-check CUDA errors
+  CUDA_ERROR(cudaGetLastError());
 }
