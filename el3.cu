@@ -5,10 +5,17 @@
 #include "cuda.h"
 #include "hdf5.h"
 
-#define DAT double
-#define H5_DAT H5T_IEEE_F64LE
+#define USE_DOUBLE
 #define DO_CUDA_SYNC
 #define DO_HDF_OUT
+
+#ifdef USE_DOUBLE
+#  define DAT double
+#  define H5_DAT H5T_IEEE_F64LE
+#else
+#  define DAT float
+#  define H5_DAT H5T_IEEE_F32LE
+#endif
 
 #define CUDA_DO(call) do {                                              \
     cudaError_t code = (call);                                          \
