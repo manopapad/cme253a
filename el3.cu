@@ -1,3 +1,4 @@
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -82,6 +83,9 @@ public:
     ptr_.ptr = NULL;
   }
 public:
+  size_t size() {
+    return extent_.depth * extent_.height * extent_.width;
+  }
   void write(const char* hdf_fname, const char* probe_fname, const char* field) {
     // copy data to host
     size_t ilim = extent_.depth;
@@ -223,6 +227,8 @@ int main() {
   // Computation
   init<<<grid,block>>>(P); CUDA_CHECK();
   int t = -1;
+  CUDA_DO(cudaDeviceSynchronize());
+  std::chrono::time_point<std::chrono::system_clock> t_start = std::chrono::system_clock::now();
   while (true) {
     t += 1;
 #   ifdef DO_OUTPUT
@@ -236,6 +242,22 @@ int main() {
     compute_V<<<grid,block>>>(P, Vx, Vy, Vz, Txx, Tyy, Tzz, Txy, Txz, Tyz, dt); CUDA_CHECK();
     compute_P_T<<<grid,block>>>(P, Vx, Vy, Vz, Txx, Tyy, Tzz, Txy, Txz, Tyz, dt); CUDA_CHECK();
   }
+  CUDA_DO(cudaDeviceSynchronize());
+  std::chrono::time_point<std::chrono::system_clock> t_end = std::chrono::system_clock::now();
+  // Report stats
+  std::cout << "Domain: " << reqd_x << "x" << reqd_y << "x" << reqd_z << std::endl;
+  size_t total_bytes = (P.size() +
+                        Vx.size() + Vy.size() + Vz.size() +
+                        Txx.size() + Tyy.size() + Tzz.size() +
+                        Txy.size() + Txz.size() + Tyz.size());
+  double total_gb = ((double) total_bytes) / 1024 / 1024 / 1024;
+  std::cout << "Total memory used: " << total_gb << " GB" << std::endl;
+  long ns = std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start).count();
+  double seconds = ((double) ns) / 1000 / 1000 / 1000;
+  std::cout << nt << " iterations completed in " << seconds << " s" << std::endl;
+  size_t eff_gb_touched = 2 * total_gb;
+  double eff_throughput = eff_gb_touched*nt/seconds;
+  std::cout << "Effective throughput: " << eff_throughput << " GB/s" << std::endl;
   // Free arrays
   Tyz.dealloc();
   Txz.dealloc();
