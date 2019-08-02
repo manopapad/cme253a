@@ -1,4 +1,6 @@
 *.hdf
 *.xmf
 *.pyc
+*.dat
+*.out
 *~
