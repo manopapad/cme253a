@@ -255,7 +255,7 @@ int main() {
   long ns = std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start).count();
   double seconds = ((double) ns) / 1000 / 1000 / 1000;
   std::cout << nt << " iterations completed in " << seconds << " s" << std::endl;
-  size_t eff_gb_touched = 2 * total_gb;
+  double eff_gb_touched = 2 * total_gb;
   double eff_throughput = eff_gb_touched*nt/seconds;
   std::cout << "Effective throughput: " << eff_throughput << " GB/s" << std::endl;
   // Free arrays
